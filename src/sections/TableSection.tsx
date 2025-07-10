@@ -192,7 +192,7 @@ const PriorityCell: React.FC<{ priority: Priority, onChange: (newPriority: Prior
   );
 };
 
-// Editable Cell Component
+// Editable Cell Component - Always an input field
 const EditableCell: React.FC<{
   value: string;
   onChange: (newValue: string) => void;
@@ -201,152 +201,108 @@ const EditableCell: React.FC<{
   row?: number;
   col?: number;
 }> = ({ value, onChange, className = '', onNavigate, row, col }) => {
-  const [editing, setEditing] = useState(false);
+  // State for the current text value
   const [text, setText] = useState(value);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cellRef = useRef<HTMLDivElement>(null);
 
-  // Update text when value changes (e.g. from external changes)
+  // Update text when value changes from parent component
   useEffect(() => {
     setText(value);
-    console.log(`EditableCell value updated to: ${value}`);
   }, [value]);
 
-  // Focus and select input when editing starts
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
+  // Handle changes to the input
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+  };
+
+  // Handle blur event (when user clicks away)
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (text !== value) {
+      onChange(text); // Update the parent component with the new value
+    }
+  };
+
+  // Handle focus event
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (inputRef.current) {
+      // Select all text when focused for easy editing
       inputRef.current.select();
     }
-  }, [editing]);
-
-  // Handle save and cancel
-  const handleBlur = () => {
-    // First update the data
-    if (text !== value) {
-      onChange(text);
-    }
-    
-    // Short timeout to ensure the value is updated before stopping edit mode
-    setTimeout(() => {
-      setEditing(false);
-      
-      // Force visibility of the cell content after editing
-      if (cellRef.current) {
-        cellRef.current.style.visibility = 'visible';
-        cellRef.current.style.opacity = '1';
-        cellRef.current.style.color = '#000000';
-      }
-    }, 10);
   };
 
-  const handleDoubleClick = () => {
-    setEditing(true);
-  };
-
-  const handleSingleClick = () => {
-    // For single click, just highlight the cell to indicate selection
-    if (!editing) {
-      cellRef.current?.focus();
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (editing) {
-      switch (e.key) {
-        case 'Enter':
-          e.preventDefault();
-          handleBlur();
-          onNavigate?.('down');
-          break;
-        case 'Tab':
-          e.preventDefault();
-          handleBlur();
-          onNavigate?.(e.shiftKey ? 'left' : 'right');
-          break;
-        case 'Escape':
-          e.preventDefault();
-          setText(value); // Reset to original
-          setEditing(false);
-          break;
-        case 'ArrowUp':
-        case 'ArrowDown':
-        case 'ArrowLeft':
-        case 'ArrowRight':
-          // Don't handle arrow keys while editing
-          break;
-      }
-    } else {
-      // When not editing
-      switch (e.key) {
-        case 'Enter':
-        case 'F2':
-          e.preventDefault();
-          setEditing(true);
-          break;
-        case 'ArrowUp':
+  // Handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        inputRef.current?.blur(); // Remove focus
+        onNavigate?.('down'); // Move down to the next row
+        break;
+      case 'Tab':
+        e.preventDefault();
+        inputRef.current?.blur(); // Remove focus
+        onNavigate?.(e.shiftKey ? 'left' : 'right'); // Move to next/prev column
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setText(value); // Reset to original value
+        inputRef.current?.blur(); // Remove focus
+        break;
+      case 'ArrowUp':
+        if (!isFocused) {
           e.preventDefault();
           onNavigate?.('up');
-          break;
-        case 'ArrowDown':
+        }
+        break;
+      case 'ArrowDown':
+        if (!isFocused) {
           e.preventDefault();
           onNavigate?.('down');
-          break;
-        case 'ArrowLeft':
+        }
+        break;
+      case 'ArrowLeft':
+        if (!isFocused || e.currentTarget.selectionStart === 0) {
           e.preventDefault();
           onNavigate?.('left');
-          break;
-        case 'ArrowRight':
+        }
+        break;
+      case 'ArrowRight':
+        if (!isFocused || 
+            e.currentTarget.selectionStart === e.currentTarget.value.length) {
           e.preventDefault();
           onNavigate?.('right');
-          break;
-      }
+        }
+        break;
     }
   };
 
-  return editing ? (
+  return (
     <input
       ref={inputRef}
       value={text}
-      onChange={(e) => setText(e.target.value)}
+      onChange={handleChange}
+      onFocus={handleFocus}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
-      className={`editable-cell-input ${className}`}
+      className={`cell-input ${className} ${isFocused ? 'cell-input-focused' : ''}`}
       data-row={row}
       data-col={col}
-      style={{ 
+      style={{
         color: '#000000', 
-        visibility: 'visible', 
+        visibility: 'visible',
         opacity: 1,
         width: '100%',
         height: '100%',
-        padding: '2px 4px'
+        border: 'none',
+        background: isFocused ? '#fff' : 'transparent',
+        padding: '2px 4px',
+        outline: isFocused ? '2px solid #3b82f6' : 'none',
+        cursor: isFocused ? 'text' : 'cell'
       }}
     />
-  ) : (
-    <div 
-      ref={cellRef}
-      className={`editable-cell-content cursor-cell ${className}`}
-      onClick={handleSingleClick}
-      onDoubleClick={handleDoubleClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      data-row={row}
-      data-col={col}
-      style={{ 
-        overflow: 'hidden', 
-        textOverflow: 'ellipsis', 
-        color: '#000000', 
-        visibility: 'visible', 
-        opacity: 1,
-        display: 'block',
-        width: '100%',
-        height: '100%',
-        padding: '2px 0'
-      }}
-    >
-      {value || "\u00A0"} {/* Use non-breaking space if value is empty */}
-    </div>
   );
 };
 
@@ -761,13 +717,18 @@ export function TableSection() {
   return (
     <div className="sheet-container overflow-auto">
       {/* Grid container */}
-      <div className="grid sheet-grid border-b relative" style={{ gridTemplateColumns }} data-grid-container ref={gridContainerRef}>
+      <div className="sheet-grid border-b relative" style={{ gridTemplateColumns }} data-grid-container ref={gridContainerRef}>
         {/* Header row */}
         {headers.map((header, index) => (
           <div 
-            key={header.key} 
+            key={`header-${header.key}`} 
             className="sheet-header p-2 text-sm border-r border-b relative"
             data-col-index={index}
+            style={{ 
+              gridColumn: index + 1, 
+              gridRow: 1,
+              zIndex: 5 // Keep headers above other content
+            }}
           >
             {header.label}
             {/* Resizer component */}
@@ -777,9 +738,20 @@ export function TableSection() {
 
         {/* Data rows */}
         {tasks.map((task, rowIdx) => (
-          <React.Fragment key={task.id}>
+          <React.Fragment key={`task-${task.id}`}>
             {/* Row number */}
-            <div className="row-number p-2 border-r border-b">{task.id}</div>
+            <div 
+              className="row-number p-2 border-r border-b"
+              style={{ 
+                gridColumn: 1, 
+                gridRow: rowIdx + 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              {task.id}
+            </div>
 
             {/* Dynamic cells based on headers */}
             {headers.slice(1).map((header, colIdx) => {
@@ -788,9 +760,23 @@ export function TableSection() {
               const isActive = isActiveCell(rowIdx, colIndex);
               const cellClassName = `sheet-cell p-2 border-r border-b ${isActive ? 'sheet-cell-active' : ''}`;
 
+              // Prepare common cell styles
+              const cellStyle = { 
+                position: 'relative' as const,
+                gridColumn: colIndex + 1,
+                gridRow: rowIdx + 2,
+                display: 'flex' as const,
+                alignItems: 'center' as const
+              };
+              
               if (key === 'status') {
                 return (
-                  <div className={`${cellClassName} force-visible`} key={key} onClick={() => handleCellClick(rowIdx, colIndex)}>
+                  <div 
+                    className={`${cellClassName} force-visible`} 
+                    key={`cell-${rowIdx}-${key}`} 
+                    onClick={() => handleCellClick(rowIdx, colIndex)}
+                    style={cellStyle}
+                  >
                     <StatusCell 
                       status={task.status} 
                       onChange={(value) => updateTaskField(task.id, 'status', value)} 
@@ -801,7 +787,12 @@ export function TableSection() {
 
               if (key === 'priority') {
                 return (
-                  <div className={`${cellClassName} force-visible`} key={key} onClick={() => handleCellClick(rowIdx, colIndex)}>
+                  <div 
+                    className={`${cellClassName} force-visible`} 
+                    key={`cell-${rowIdx}-${key}`} 
+                    onClick={() => handleCellClick(rowIdx, colIndex)}
+                    style={cellStyle}
+                  >
                     <PriorityCell 
                       priority={task.priority} 
                       onChange={(value) => updateTaskField(task.id, 'priority', value)} 
@@ -815,7 +806,12 @@ export function TableSection() {
                                key === 'estimatedValue' ? 'text-right force-visible' : 'force-visible';
               
               return (
-                <div className={`${cellClassName} force-visible`} key={key} onClick={() => handleCellClick(rowIdx, colIndex)}>
+                <div 
+                  className={`${cellClassName} force-visible`} 
+                  key={`cell-${rowIdx}-${key}`} 
+                  onClick={() => handleCellClick(rowIdx, colIndex)}
+                  style={cellStyle}
+                >
                   <EditableCell 
                     value={getFieldByHeader(task, key)}
                     onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
@@ -835,8 +831,17 @@ export function TableSection() {
           const rowIndex = tasks.length + idx;
           
           return (
-            <React.Fragment key={`empty-${idx}`}>
-              <div className="row-number p-2 border-r border-b">
+            <React.Fragment key={`empty-row-${idx}`}>
+              <div 
+                className="row-number p-2 border-r border-b"
+                style={{ 
+                  gridColumn: 1, 
+                  gridRow: rowIndex + 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
                 {rowIndex + 1}
               </div>
               
@@ -847,10 +852,44 @@ export function TableSection() {
                 const cellClassName = `sheet-cell p-2 border-r border-b ${isActive ? 'sheet-cell-active' : ''}`;
                 
                 return (
-                  <div key={`empty-${idx}-${colIdx}`} className={cellClassName} onClick={() => handleCellClick(rowIndex, colIndex)}>
+                  <div 
+                    key={`empty-cell-${rowIndex}-${colIdx}`} 
+                    className={`${cellClassName} force-visible`} 
+                    onClick={() => handleCellClick(rowIndex, colIndex)}
+                    style={{ 
+                      gridColumn: colIndex + 1, 
+                      gridRow: rowIndex + 2 
+                    }}
+                  >
                     <EditableCell 
                       value=""
-                      onChange={() => {}} // No-op for now, could create a new row if needed
+                      onChange={(value) => {
+                        // Create a new row if the user inputs data in an empty row
+                        if (value.trim() !== '') {
+                          // Create new task with this value in the right column
+                          const newTask: TaskRow = {
+                            id: rowIndex + 1,
+                            title: '',
+                            dueDate: '',
+                            status: 'Need to start',
+                            submitter: '',
+                            url: '',
+                            assignee: '',
+                            priority: 'Medium',
+                            estimatedValue: ''
+                          };
+                          
+                          // Set the specific field value
+                          const headerKey = headers[colIndex].key;
+                          // Make sure we're setting the correct field
+                          if (headerKey in newTask) {
+                            (newTask as any)[headerKey] = value;
+                          }
+                          
+                          // Add the new task to the tasks array
+                          setTasks(prev => [...prev, newTask]);
+                        }
+                      }}
                       onNavigate={(direction) => navigateCell(rowIndex, colIndex, direction)}
                       row={rowIndex}
                       col={colIndex}
