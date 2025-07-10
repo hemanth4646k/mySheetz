@@ -72,26 +72,8 @@ const BottomRow = () => {
         </div>
 
         {/* Plus Button */}
-        <div className="flex items-center ml-2">
-          <button 
-            className="p-2 text-gray-500 hover:text-gray-700 transition-colors duration-200"
-            aria-label="Add new tab"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </button>
+        <div className="flex items-center ml-2 cursor-pointer hover:bg-gray-100 transition-colors duration-200 rounded-full p-2">
+          <img src="icons/plus.svg" alt="plus_icon" />
         </div>
       </div>
     </div>
