@@ -1,4 +1,4 @@
-/* Spreadsheet styles */
+/* Spreadsheet styles - Matching the image reference */
 .sheet-container {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
@@ -56,6 +56,11 @@ body.column-resizing {
   top: 0;
   z-index: 2;
   border-bottom: 2px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 13px;
+  height: 40px;
+  display: flex;
+  align-items: center;
 }
 
 /* Cell styling */
@@ -67,7 +72,7 @@ body.column-resizing {
   text-overflow: ellipsis;
   box-sizing: border-box;
   color: #000000;
-  min-height: 24px;
+  min-height: 38px; /* Taller to match image */
   padding: 0;
   display: flex;
   align-items: center;
@@ -136,9 +141,9 @@ body.column-resizing {
   border: none;
   background: transparent;
   outline: none;
-  font-size: inherit;
+  font-size: 14px;
   font-family: inherit;
-  padding: 2px 4px;
+  padding: 6px 8px;
   margin: 0;
   color: #000000 !important;
   visibility: visible !important;
@@ -199,6 +204,9 @@ body.column-resizing {
 .row-number {
   background-color: #f8f9fa;
   color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
   text-align: center;
   font-weight: 500;
 }
@@ -257,10 +265,23 @@ body.column-resizing {
 /* URL styles */
 .url-cell {
   color: #2563eb !important;
-  text-decoration: none;
+  text-decoration: underline;
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+/* Due Date styling */
+.due-date-cell {
+  color: #000000;
+}
+
+/* Alternate row colors */
+.sheet-grid .row-even {
+  background-color: #ffffff;
+}
+
+.sheet-grid .row-odd {
+  background-color: #f9fafb;}
 
 input.url-cell {
   color: #2563eb !important;

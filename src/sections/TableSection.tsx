@@ -15,9 +15,7 @@ interface TaskRow {
   assignee: string;
   priority: Priority;
   estimatedValue: string;
-}
-
-// Component for cell styling based on status
+}  // Component for cell styling based on status
 const StatusCell: React.FC<{ status: Status, onChange: (newStatus: Status) => void }> = ({ status, onChange }) => {
   const getStatusColor = (status: Status) => {
     switch(status) {
@@ -78,10 +76,11 @@ const StatusCell: React.FC<{ status: Status, onChange: (newStatus: Status) => vo
   return (
     <div className="relative" ref={dropdownRef}>
       <div 
-        className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-pointer`}
+        className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-pointer whitespace-nowrap`}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         tabIndex={0}
+        style={{ display: 'inline-block', minWidth: '90px', textAlign: 'center' }}
       >
         {status}
       </div>
@@ -110,8 +109,8 @@ const PriorityCell: React.FC<{ priority: Priority, onChange: (newPriority: Prior
   const getPriorityColor = (priority: Priority) => {
     switch(priority) {
       case 'Low': return 'text-blue-600';
-      case 'Medium': return 'text-yellow-600';
-      case 'High': return 'text-red-600';
+      case 'Medium': return 'text-amber-500';
+      case 'High': return 'text-red-500';
       default: return '';
     }
   };
@@ -165,10 +164,11 @@ const PriorityCell: React.FC<{ priority: Priority, onChange: (newPriority: Prior
   return (
     <div className="relative" ref={dropdownRef}>
       <div 
-        className={`cursor-pointer ${getPriorityColor(priority)}`}
+        className={`cursor-pointer ${getPriorityColor(priority)} font-medium`}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         tabIndex={0}
+        style={{ display: 'inline-block' }}
       >
         {priority}
       </div>
@@ -298,9 +298,10 @@ const EditableCell: React.FC<{
         height: '100%',
         border: 'none',
         background: isFocused ? '#fff' : 'transparent',
-        padding: '2px 4px',
+        padding: '6px 8px',
         outline: isFocused ? '2px solid #3b82f6' : 'none',
-        cursor: isFocused ? 'text' : 'cell'
+        cursor: isFocused ? 'text' : 'cell',
+        fontSize: '14px'
       }}
     />
   );
@@ -490,7 +491,7 @@ export function TableSection() {
       url: 'www.alishapatel.com',
       assignee: 'Sophie Choudhury',
       priority: 'Medium',
-      estimatedValue: '4,200,000'
+      estimatedValue: '6,200,000'
     },
     {
       id: 2, 
@@ -523,7 +524,7 @@ export function TableSection() {
       url: 'www.emilygreen.com',
       assignee: 'Tom Wright',
       priority: 'Low',
-      estimatedValue: '5,900,000'
+      estimatedValue: '5,800,000'
     },
     {
       id: 5, 
@@ -575,6 +576,8 @@ export function TableSection() {
   // Reference to the grid container for direct DOM manipulation
   const gridContainerRef = useRef<HTMLDivElement>(null);
   
+  // These formatting helpers are now directly used where needed
+
   // Update grid template columns whenever columnWidths change
   useEffect(() => {
     if (gridContainerRef.current) {
@@ -711,13 +714,28 @@ export function TableSection() {
 
   // Get field value by header key and row
   const getFieldByHeader = (task: TaskRow, headerKey: string): string => {
-    return task[headerKey as keyof TaskRow]?.toString() || '';
+    const value = task[headerKey as keyof TaskRow];
+    if (value === undefined || value === null) return '';
+    
+    // Format values based on type
+    if (headerKey === 'estimatedValue' && typeof value === 'string') {
+      // Ensure numbers are properly formatted
+      return value;
+    }
+    
+    return value.toString();
   };
 
   return (
     <div className="sheet-container overflow-auto">
       {/* Grid container */}
-      <div className="sheet-grid border-b relative" style={{ gridTemplateColumns }} data-grid-container ref={gridContainerRef}>
+      <div className="sheet-grid border-b relative" 
+           style={{ 
+             gridTemplateColumns,
+             gridAutoRows: 'minmax(38px, auto)'  // Taller rows to match image
+           }} 
+           data-grid-container 
+           ref={gridContainerRef}>
         {/* Header row */}
         {headers.map((header, index) => (
           <div 
@@ -727,7 +745,11 @@ export function TableSection() {
             style={{ 
               gridColumn: index + 1, 
               gridRow: 1,
-              zIndex: 5 // Keep headers above other content
+              zIndex: 5, // Keep headers above other content
+              background: '#f8f9fa',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center'
             }}
           >
             {header.label}
@@ -747,7 +769,9 @@ export function TableSection() {
                 gridRow: rowIdx + 2,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb',
+                color: '#6b7280'
               }}
             >
               {task.id}
@@ -767,15 +791,17 @@ export function TableSection() {
                 gridRow: rowIdx + 2,
                 display: 'flex' as const,
                 alignItems: 'center' as const
-              };
-              
-              if (key === 'status') {
+              };                if (key === 'status') {
+                const rowStyle = {
+                  ...cellStyle,
+                  backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb'
+                };
                 return (
                   <div 
                     className={`${cellClassName} force-visible`} 
                     key={`cell-${rowIdx}-${key}`} 
                     onClick={() => handleCellClick(rowIdx, colIndex)}
-                    style={cellStyle}
+                    style={rowStyle}
                   >
                     <StatusCell 
                       status={task.status} 
@@ -786,12 +812,16 @@ export function TableSection() {
               }
 
               if (key === 'priority') {
+                const rowStyle = {
+                  ...cellStyle,
+                  backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb'
+                };
                 return (
                   <div 
                     className={`${cellClassName} force-visible`} 
                     key={`cell-${rowIdx}-${key}`} 
                     onClick={() => handleCellClick(rowIdx, colIndex)}
-                    style={cellStyle}
+                    style={rowStyle}
                   >
                     <PriorityCell 
                       priority={task.priority} 
@@ -805,12 +835,63 @@ export function TableSection() {
               const extraClass = key === 'url' ? 'url-cell force-visible' : 
                                key === 'estimatedValue' ? 'text-right force-visible' : 'force-visible';
               
+              // Additional cell styling based on row (alternate colors)
+              const rowStyle = {
+                ...cellStyle,
+                backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb',
+              };
+              
+              // For URL cells, wrap in a link styled container
+              if (key === 'url') {
+                return (
+                  <div 
+                    className={`${cellClassName} force-visible`} 
+                    key={`cell-${rowIdx}-${key}`} 
+                    onClick={() => handleCellClick(rowIdx, colIndex)}
+                    style={rowStyle}
+                  >
+                    <div className="w-full h-full">
+                      <EditableCell 
+                        value={getFieldByHeader(task, key)}
+                        onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
+                        className="text-blue-600 underline force-visible"
+                        onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
+                        row={rowIdx}
+                        col={colIndex}
+                      />
+                    </div>
+                  </div>
+                );
+              }
+              
+              // For estimated value - right align
+              if (key === 'estimatedValue') {
+                return (
+                  <div 
+                    className={`${cellClassName} force-visible`} 
+                    key={`cell-${rowIdx}-${key}`} 
+                    onClick={() => handleCellClick(rowIdx, colIndex)}
+                    style={rowStyle}
+                  >
+                    <EditableCell 
+                      value={getFieldByHeader(task, key)}
+                      onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
+                      className="text-right w-full force-visible"
+                      onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
+                      row={rowIdx}
+                      col={colIndex}
+                    />
+                  </div>
+                );
+              }
+              
+              // Standard cell
               return (
                 <div 
                   className={`${cellClassName} force-visible`} 
                   key={`cell-${rowIdx}-${key}`} 
                   onClick={() => handleCellClick(rowIdx, colIndex)}
-                  style={cellStyle}
+                  style={rowStyle}
                 >
                   <EditableCell 
                     value={getFieldByHeader(task, key)}
@@ -839,7 +920,9 @@ export function TableSection() {
                   gridRow: rowIndex + 2,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                  color: '#6b7280'
                 }}
               >
                 {rowIndex + 1}
@@ -858,7 +941,8 @@ export function TableSection() {
                     onClick={() => handleCellClick(rowIndex, colIndex)}
                     style={{ 
                       gridColumn: colIndex + 1, 
-                      gridRow: rowIndex + 2 
+                      gridRow: rowIndex + 2,
+                      backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb'
                     }}
                   >
                     <EditableCell 

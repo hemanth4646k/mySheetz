@@ -1,6 +1,7 @@
 import './App.css'
 import { OptionsRow } from './sections/OptionsRow'
 import { TableSection } from './sections/TableSection'
+import BottomRow from './sections/TitleRow'
 import { TopBar } from './sections/TopBar'
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
       <TopBar></TopBar>
       <OptionsRow></OptionsRow>
       <TableSection></TableSection>
+      <BottomRow></BottomRow>
     </div>
   )
 }
