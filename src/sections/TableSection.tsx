@@ -14,86 +14,80 @@ interface TaskRow {
   url: string;
   assignee: string;
   priority: Priority;
+  dueDate2: string;
   estimatedValue: string;
+  extra?: Record<string, string>; // New property for extra columns
 }  // Component for cell styling based on status
+
 const StatusCell: React.FC<{ status: Status, onChange: (newStatus: Status) => void }> = ({ status, onChange }) => {
-  const getStatusColor = (status: Status) => {
+  const getStatusClass = (status: Status) => {
     switch(status) {
-      case 'In-process': return 'bg-yellow-100 text-yellow-800';
-      case 'Need to start': return 'bg-orange-100 text-orange-800';
-      case 'Complete': return 'bg-green-100 text-green-800';
-      case 'Blocked': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100';
+      case 'In-process': return 'status-pill status-in-process';
+      case 'Need to start': return 'status-pill status-need-to-start';
+      case 'Complete': return 'status-pill status-complete';
+      case 'Blocked': return 'status-pill status-blocked';
+      default: return 'status-pill';
     }
   };
-
   const statuses: Status[] = ['In-process', 'Need to start', 'Complete', 'Blocked'];
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isOpen) {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (e.key === 'Escape') setIsOpen(false);
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
         e.preventDefault();
         const currentIndex = statuses.indexOf(status);
         let newIndex: number;
-        
-        if (e.key === 'ArrowDown') {
-          newIndex = (currentIndex + 1) % statuses.length;
-        } else {
-          newIndex = (currentIndex - 1 + statuses.length) % statuses.length;
-        }
-        
+        if (e.key === 'ArrowDown') newIndex = (currentIndex + 1) % statuses.length;
+        else newIndex = (currentIndex - 1 + statuses.length) % statuses.length;
         onChange(statuses[newIndex]);
       }
-    } else {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        setIsOpen(true);
-      }
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      setIsOpen(true);
     }
   };
-
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} style={{width:'100%',height:'100%',display:'flex',justifyContent:'center',alignItems:'center'}}>
       <div 
-        className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(status)} cursor-pointer whitespace-nowrap`}
+        className={`${getStatusClass(status)}`}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        style={{ display: 'inline-block', minWidth: '90px', textAlign: 'center' }}
+        style={{
+          cursor:'pointer',
+          minWidth:'80px',
+          textAlign:'center',
+          margin:'2px 0',
+          padding:'4px 8px',
+          display:'inline-flex',
+          alignItems:'center',
+          justifyContent:'center',
+          height:'22px', // smaller than cell height
+          width:'fit-content',
+          color:'#85640B'
+        }}
       >
         {status}
       </div>
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 z-10 bg-white shadow-lg rounded border">
+        <div className="dropdown-menu" style={{position:'absolute',left:0,top:'100%',marginTop:4,zIndex:10,background:'#fff',boxShadow:'0 2px 8px rgba(0,0,0,0.08)',borderRadius:6,border:'1px solid #eee'}}>
           {statuses.map((s) => (
             <div 
               key={s} 
-              className={`px-4  py-2 hover:bg-gray-100 cursor-pointer ${status === s ? 'bg-gray-50' : ''}`}
-              onClick={() => {
-                onChange(s);
-                setIsOpen(false);
-              }}
+              className="dropdown-item"
+              style={{padding:'8px 18px',cursor:'pointer',background:status===s?'#f3f4f6':'',fontWeight:status===s?'bold':'normal'}}
+              onClick={() => {onChange(s);setIsOpen(false);}}
             >
               {s}
             </div>
@@ -106,11 +100,11 @@ const StatusCell: React.FC<{ status: Status, onChange: (newStatus: Status) => vo
 
 // Component for priority styling
 const PriorityCell: React.FC<{ priority: Priority, onChange: (newPriority: Priority) => void }> = ({ priority, onChange }) => {
-  const getPriorityColor = (priority: Priority) => {
+  const getPriorityClass = (priority: Priority) => {
     switch(priority) {
-      case 'Low': return 'text-blue-600';
-      case 'Medium': return 'text-amber-500';
-      case 'High': return 'text-red-500';
+      case 'Low': return 'priority-low';
+      case 'Medium': return 'priority-medium';
+      case 'High': return 'priority-high';
       default: return '';
     }
   };
@@ -162,26 +156,24 @@ const PriorityCell: React.FC<{ priority: Priority, onChange: (newPriority: Prior
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} style={{width:'100%',display:'flex',justifyContent:'center'}}>
       <div 
-        className={`cursor-pointer ${getPriorityColor(priority)} font-medium`}
+        className={getPriorityClass(priority)}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
         tabIndex={0}
-        style={{ display: 'inline-block' }}
+        style={{cursor:'pointer',fontWeight:600,textAlign:'center'}}
       >
         {priority}
       </div>
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 z-10 bg-white shadow-lg rounded border">
+        <div className="dropdown-menu" style={{position:'absolute',left:0,top:'100%',marginTop:4,zIndex:10,background:'#fff',boxShadow:'0 2px 8px rgba(0,0,0,0.08)',borderRadius:6,border:'1px solid #eee'}}>
           {priorities.map((p) => (
             <div 
               key={p} 
-              className={`px-4 py-2 hover:bg-gray-100 cursor-pointer ${getPriorityColor(p)}`}
-              onClick={() => {
-                onChange(p);
-                setIsOpen(false);
-              }}
+              className="dropdown-item"
+              style={{padding:'8px 18px',cursor:'pointer',background:priority===p?'#f3f4f6':'',fontWeight:priority===p?'bold':'normal'}}
+              onClick={() => {onChange(p);setIsOpen(false);}}
             >
               {p}
             </div>
@@ -474,7 +466,7 @@ const ColumnResizer: React.FC<{
       style={{ cursor: 'col-resize' }}
     >
       {/* Visual indicator for the resizer */}
-      <div className="h-full w-1 mx-auto bg-transparent hover:bg-blue-400" />
+      <div className="h-full w-[4px] mx-auto bg-transparent hover:bg-blue-400" />
     </div>
   );
 };
@@ -491,6 +483,7 @@ export function TableSection() {
       url: 'www.alishapatel.com',
       assignee: 'Sophie Choudhury',
       priority: 'Medium',
+      dueDate2: '20-11-2024',
       estimatedValue: '6,200,000'
     },
     {
@@ -502,6 +495,7 @@ export function TableSection() {
       url: 'www.irfankhan.com',
       assignee: 'Tejus Pandey',
       priority: 'High',
+      dueDate2: '30-10-2024',
       estimatedValue: '3,500,000'
     },
     {
@@ -513,6 +507,7 @@ export function TableSection() {
       url: 'www.markjohnson.com',
       assignee: 'Rachel Lee',
       priority: 'Medium',
+      dueDate2: '10-12-2024',
       estimatedValue: '4,750,000'
     },
     {
@@ -524,6 +519,7 @@ export function TableSection() {
       url: 'www.emilygreen.com',
       assignee: 'Tom Wright',
       priority: 'Low',
+      dueDate2: '15-01-2025',
       estimatedValue: '5,800,000'
     },
     {
@@ -535,6 +531,7 @@ export function TableSection() {
       url: 'www.jessicabrown.com',
       assignee: 'Kevin Smith',
       priority: 'Low',
+      dueDate2: '30-01-2025',
       estimatedValue: '2,800,000'
     }
   ]);
@@ -542,7 +539,11 @@ export function TableSection() {
   // Track the currently selected/active cell
   const [activeCell, setActiveCell] = useState<{row: number, col: number} | null>(null);
 
-  const headers = [
+  // Track extra columns added by the user
+  const [extraColumns, setExtraColumns] = useState<{ key: string; label: string }[]>([]);
+
+  // Update headers to add a new column at the end with a '+' icon
+  const baseHeaders = [
     { key: 'id', label: '#' },
     { key: 'title', label: 'Job Request' },
     { key: 'dueDate', label: 'Submitted' },
@@ -551,24 +552,48 @@ export function TableSection() {
     { key: 'url', label: 'URL' },
     { key: 'assignee', label: 'Assigned' },
     { key: 'priority', label: 'Priority' },
-    { key: 'estimatedValue', label: 'Est. Value' }
+    { key: 'dueDate2', label: 'Due Date' },
+    { key: 'estimatedValue', label: 'Est. Value' },
+  ];
+  // Compose headers: base + extra + add
+  const headers = [
+    ...baseHeaders,
+    ...extraColumns,
+    { key: 'add', label: <span style={{fontSize:'20px',fontWeight:600,display:'flex',justifyContent:'center',alignItems:'center'}}>+</span> }
   ];
 
-  // Initial column widths in pixels
+  // Update columnWidths to include the new columns (default width 120px for new columns, 60px for add column)
   const [columnWidths, setColumnWidths] = useState(() => {
-    // Try to load saved column widths from localStorage
     try {
       const savedWidths = localStorage.getItem('my-sheets-column-widths');
       if (savedWidths) {
-        return JSON.parse(savedWidths);
+        const arr = JSON.parse(savedWidths);
+        // If new columns added, pad with default width
+        if (arr.length < baseHeaders.length + 1) {
+          return [...arr, ...Array(baseHeaders.length + 1 - arr.length).fill(60)];
+        }
+        return arr;
       }
     } catch (e) {
       console.error('Failed to load saved column widths:', e);
     }
-    
     // Default widths if none are saved
-    return [40, 300, 120, 120, 120, 140, 120, 100, 120];
+    return [40, 300, 120, 120, 120, 140, 120, 100, 120, 120, 60];
   });
+
+  // Update columnWidths when extraColumns changes
+  useEffect(() => {
+    setColumnWidths((prev: number[]) => {
+      const baseLen = baseHeaders.length;
+      const totalLen = baseHeaders.length + extraColumns.length + 1; // +1 for add column
+      let newWidths = [...prev];
+      // Add default width for new columns
+      while (newWidths.length < totalLen) newWidths.splice(newWidths.length - 1, 0, 120);
+      // Remove widths if columns removed
+      while (newWidths.length > totalLen) newWidths.splice(baseLen, 1);
+      return newWidths;
+    });
+  }, [extraColumns]);
 
   // Total number of rows (data + empty)
   const totalRows = tasks.length + 15;
@@ -726,34 +751,49 @@ export function TableSection() {
     return value.toString();
   };
 
+  // Handle add column (+) click
+  const handleAddColumns = () => {
+    setExtraColumns((prev) => {
+      const startIdx = prev.length + 1;
+      const newCols = Array.from({ length: 5 }, (_, i) => ({
+        key: `extra_${startIdx + i}`,
+        label: `New Col ${startIdx + i}`
+      }));
+      return [...prev, ...newCols];
+    });
+  };
+
   return (
-    <div className="sheet-container overflow-auto">
-      {/* Grid container */}
-      <div className="sheet-grid border-b relative" 
-           style={{ 
-             gridTemplateColumns,
-             gridAutoRows: 'minmax(38px, auto)'  // Taller rows to match image
-           }} 
-           data-grid-container 
-           ref={gridContainerRef}>
+    <div className="sheet-container" style={{width:'100vw',height:'calc(100vh - 120px)',background:'#fff',borderRadius:0,boxShadow:'none',padding:0,margin:0,display:'flex',flexDirection:'column',justifyContent:'flex-start'}}>
+      <div style={{overflowX:'auto', width:'100%', flex:1, background:'#fff'}}>
+        <div className="sheet-grid"
+             style={{gridTemplateColumns, gridAutoRows:'minmax(38px,auto)', width:'max-content', minWidth:'100%', background:'#fff'}} 
+             data-grid-container
+             ref={gridContainerRef}>
         {/* Header row */}
         {headers.map((header, index) => (
-          <div 
-            key={`header-${header.key}`} 
-            className="sheet-header p-2 text-sm border-r border-b relative"
+          <div
+            key={`header-${header.key}`}
+            className="sheet-header"
             data-col-index={index}
-            style={{ 
-              gridColumn: index + 1, 
+            style={{
+              gridColumn: index + 1,
               gridRow: 1,
-              zIndex: 5, // Keep headers above other content
-              background: '#f8f9fa',
+              zIndex: 5,
               fontWeight: 600,
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#f8f9fa',
+              padding: '0 12px',
+              height: 40,
+              borderBottom: '2px solid #e5e7eb',
+              cursor: header.key === 'add' ? 'pointer' : 'default',
+              userSelect: 'none'
             }}
+            onClick={header.key === 'add' ? handleAddColumns : undefined}
           >
             {header.label}
-            {/* Resizer component */}
             <ColumnResizer index={index} onResize={handleColumnResize} columnWidths={columnWidths} gridRef={gridContainerRef} />
           </div>
         ))}
@@ -763,7 +803,7 @@ export function TableSection() {
           <React.Fragment key={`task-${task.id}`}>
             {/* Row number */}
             <div 
-              className="row-number p-2 border-r border-b"
+              className="row-number"
               style={{ 
                 gridColumn: 1, 
                 gridRow: rowIdx + 2,
@@ -777,95 +817,109 @@ export function TableSection() {
               {task.id}
             </div>
 
-            {/* Dynamic cells based on headers */}
-            {headers.slice(1).map((header, colIdx) => {
-              const key = header.key as keyof TaskRow;
+            {/* Dynamic cells based on headers (skip id and add columns) */}
+            {headers.slice(1, -1).map((header, colIdx) => {
+              const key = header.key;
               const colIndex = colIdx + 1;  // +1 because first col is row number
               const isActive = isActiveCell(rowIdx, colIndex);
               const cellClassName = `sheet-cell p-2 border-r border-b ${isActive ? 'sheet-cell-active' : ''}`;
-
-              // Prepare common cell styles
               const cellStyle = { 
                 position: 'relative' as const,
                 gridColumn: colIndex + 1,
                 gridRow: rowIdx + 2,
                 display: 'flex' as const,
-                alignItems: 'center' as const
-              };                if (key === 'status') {
-                const rowStyle = {
-                  ...cellStyle,
-                  backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb'
-                };
-                return (
-                  <div 
-                    className={`${cellClassName} force-visible`} 
-                    key={`cell-${rowIdx}-${key}`} 
-                    onClick={() => handleCellClick(rowIdx, colIndex)}
-                    style={rowStyle}
-                  >
-                    <StatusCell 
-                      status={task.status} 
-                      onChange={(value) => updateTaskField(task.id, 'status', value)} 
-                    />
-                  </div>
-                );
-              }
-
-              if (key === 'priority') {
-                const rowStyle = {
-                  ...cellStyle,
-                  backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb'
-                };
-                return (
-                  <div 
-                    className={`${cellClassName} force-visible`} 
-                    key={`cell-${rowIdx}-${key}`} 
-                    onClick={() => handleCellClick(rowIdx, colIndex)}
-                    style={rowStyle}
-                  >
-                    <PriorityCell 
-                      priority={task.priority} 
-                      onChange={(value) => updateTaskField(task.id, 'priority', value)} 
-                    />
-                  </div>
-                );
-              }
-
-              // Default editable cell
-              const extraClass = key === 'url' ? 'url-cell force-visible' : 
-                               key === 'estimatedValue' ? 'text-right force-visible' : 'force-visible';
-              
-              // Additional cell styling based on row (alternate colors)
-              const rowStyle = {
-                ...cellStyle,
+                alignItems: 'center' as const,
                 backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb',
               };
-              
-              // For URL cells, wrap in a link styled container
-              if (key === 'url') {
-                return (
-                  <div 
-                    className={`${cellClassName} force-visible`} 
-                    key={`cell-${rowIdx}-${key}`} 
-                    onClick={() => handleCellClick(rowIdx, colIndex)}
-                    style={rowStyle}
-                  >
-                    <div className="w-full h-full">
+              // Handle base columns
+              if (baseHeaders.find(h => h.key === key)) {
+                if (key === 'status') {
+                  return (
+                    <div 
+                      className={`${cellClassName} force-visible`} 
+                      key={`cell-${rowIdx}-${key}`} 
+                      onClick={() => handleCellClick(rowIdx, colIndex)}
+                      style={cellStyle}
+                    >
+                      <StatusCell 
+                        status={task.status} 
+                        onChange={(value) => updateTaskField(task.id, 'status', value)} 
+                      />
+                    </div>
+                  );
+                }
+
+                if (key === 'priority') {
+                  return (
+                    <div 
+                      className={`${cellClassName} force-visible`} 
+                      key={`cell-${rowIdx}-${key}`} 
+                      onClick={() => handleCellClick(rowIdx, colIndex)}
+                      style={cellStyle}
+                    >
+                      <PriorityCell 
+                        priority={task.priority} 
+                        onChange={(value) => updateTaskField(task.id, 'priority', value)} 
+                      />
+                    </div>
+                  );
+                }
+
+                // Default editable cell
+                const extraClass = key === 'url' ? 'url-cell force-visible' : 
+                                 key === 'estimatedValue' ? 'text-right force-visible' : 'force-visible';
+                
+                // Additional cell styling based on row (alternate colors)
+                const rowStyle = {
+                  ...cellStyle,
+                  backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb',
+                };
+                
+                // For URL cells, wrap in a link styled container
+                if (key === 'url') {
+                  return (
+                    <div 
+                      className={`${cellClassName} force-visible`} 
+                      key={`cell-${rowIdx}-${key}`} 
+                      onClick={() => handleCellClick(rowIdx, colIndex)}
+                      style={rowStyle}
+                    >
+                      <div className="w-full h-full">
+                        <EditableCell 
+                          value={getFieldByHeader(task, key)}
+                          onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
+                          className="text-blue-600 underline force-visible"
+                          onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
+                          row={rowIdx}
+                          col={colIndex}
+                        />
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // For estimated value - right align
+                if (key === 'estimatedValue') {
+                  return (
+                    <div 
+                      className={`${cellClassName} force-visible`} 
+                      key={`cell-${rowIdx}-${key}`} 
+                      onClick={() => handleCellClick(rowIdx, colIndex)}
+                      style={rowStyle}
+                    >
                       <EditableCell 
                         value={getFieldByHeader(task, key)}
                         onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
-                        className="text-blue-600 underline force-visible"
+                        className="text-right w-full force-visible"
                         onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
                         row={rowIdx}
                         col={colIndex}
                       />
                     </div>
-                  </div>
-                );
-              }
-              
-              // For estimated value - right align
-              if (key === 'estimatedValue') {
+                  );
+                }
+                
+                // Standard cell
                 return (
                   <div 
                     className={`${cellClassName} force-visible`} 
@@ -876,7 +930,7 @@ export function TableSection() {
                     <EditableCell 
                       value={getFieldByHeader(task, key)}
                       onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
-                      className="text-right w-full force-visible"
+                      className={extraClass}
                       onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
                       row={rowIdx}
                       col={colIndex}
@@ -884,19 +938,22 @@ export function TableSection() {
                   </div>
                 );
               }
-              
-              // Standard cell
+              // Handle extra columns
+              // Store extra column data in a new property on the task object
+              if (!task.extra) task.extra = {};
               return (
                 <div 
                   className={`${cellClassName} force-visible`} 
                   key={`cell-${rowIdx}-${key}`} 
                   onClick={() => handleCellClick(rowIdx, colIndex)}
-                  style={rowStyle}
+                  style={cellStyle}
                 >
                   <EditableCell 
-                    value={getFieldByHeader(task, key)}
-                    onChange={(value) => updateTaskField(task.id, key as keyof TaskRow, value)} 
-                    className={extraClass}
+                    value={task.extra[key] || ''}
+                    onChange={(value) => {
+                      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, extra: { ...t.extra, [key]: value } } : t));
+                    }}
+                    className="force-visible"
                     onNavigate={(direction) => navigateCell(rowIdx, colIndex, direction)}
                     row={rowIdx}
                     col={colIndex}
@@ -904,17 +961,38 @@ export function TableSection() {
                 </div>
               );
             })}
+            {/* + column cell (empty box, styled like other cells) */}
+            <div
+              className={`sheet-cell force-visible`}
+              key={`cell-${rowIdx}-add`}
+              style={{
+                position: 'relative',
+                gridColumn: headers.length,
+                gridRow: rowIdx + 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: rowIdx % 2 === 0 ? '#ffffff' : '#f9fafb',
+                fontSize: 20,
+                color: '#2563eb',
+                border: '1px solid #e5e7eb',
+                borderTop: 'none',
+                borderLeft: 'none',
+                minHeight: 38,
+                minWidth: 60
+              }}
+            >
+            </div>
           </React.Fragment>
         ))}
 
         {/* Empty rows to match image (you can add more or make this dynamic) */}
         {Array.from({ length: 15 }).map((_, idx) => {
           const rowIndex = tasks.length + idx;
-          
           return (
             <React.Fragment key={`empty-row-${idx}`}>
               <div 
-                className="row-number p-2 border-r border-b"
+                className="row-number"
                 style={{ 
                   gridColumn: 1, 
                   gridRow: rowIndex + 2,
@@ -927,13 +1005,11 @@ export function TableSection() {
               >
                 {rowIndex + 1}
               </div>
-              
-              {/* Empty editable cells */}
-              {Array.from({ length: headers.length - 1 }).map((_, colIdx) => {
-                const colIndex = colIdx + 1;  // +1 because first col is row number
+              {/* Empty editable cells for all columns except id and add */}
+              {headers.slice(1, -1).map((header, colIdx) => {
+                const colIndex = colIdx + 1;
                 const isActive = isActiveCell(rowIndex, colIndex);
                 const cellClassName = `sheet-cell p-2 border-r border-b ${isActive ? 'sheet-cell-active' : ''}`;
-                
                 return (
                   <div 
                     key={`empty-cell-${rowIndex}-${colIdx}`} 
@@ -948,10 +1024,8 @@ export function TableSection() {
                     <EditableCell 
                       value=""
                       onChange={(value) => {
-                        // Create a new row if the user inputs data in an empty row
                         if (value.trim() !== '') {
-                          // Create new task with this value in the right column
-                          const newTask: TaskRow = {
+                          const newTask: TaskRow & { extra: Record<string, string> } = {
                             id: rowIndex + 1,
                             title: '',
                             dueDate: '',
@@ -960,17 +1034,16 @@ export function TableSection() {
                             url: '',
                             assignee: '',
                             priority: 'Medium',
-                            estimatedValue: ''
+                            dueDate2: '',
+                            estimatedValue: '',
+                            extra: {}
                           };
-                          
-                          // Set the specific field value
-                          const headerKey = headers[colIndex].key;
-                          // Make sure we're setting the correct field
+                          const headerKey = header.key;
                           if (headerKey in newTask) {
                             (newTask as any)[headerKey] = value;
+                          } else {
+                            newTask.extra[headerKey] = value;
                           }
-                          
-                          // Add the new task to the tasks array
                           setTasks(prev => [...prev, newTask]);
                         }
                       }}
@@ -981,9 +1054,35 @@ export function TableSection() {
                   </div>
                 );
               })}
+              {/* + column cell (empty box, styled like other cells) */}
+              <div
+                key={`empty-cell-${rowIndex}-add`}
+                className={`sheet-cell force-visible`}
+                style={{
+                  gridColumn: headers.length,
+                  gridRow: rowIndex + 2,
+                  backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #e5e7eb',
+                  borderTop: 'none',
+                  borderLeft: 'none',
+                  minHeight: 38,
+                  minWidth: 60
+                }}
+              >
+              </div>
             </React.Fragment>
           );
         })}
+      </div>
+      </div>
+      {/* Tab bar at the bottom */}
+      <div className="sheet-tab-bar" style={{display:'flex',borderTop:'1px solid #e5e7eb',background:'#f8f9fa',height:44,alignItems:'center',paddingLeft:8}}>
+        {['All Orders','Pending','Reviewed','Arrived','+'].map((tab,idx) => (
+          <div key={tab} className={`sheet-tab${idx===0?' sheet-tab-active':''}`} style={{padding:'0 28px',height:36,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:15,cursor:'pointer',borderRadius:8,marginRight:8,background:idx===0?'#fff':'none',boxShadow:idx===0?'0 1px 4px rgba(0,0,0,0.04)':'none',border:idx===0?'1.5px solid #e5e7eb':'none',color:idx===0?'#2563eb':'#6b7280'}}>{tab}</div>
+        ))}
       </div>
     </div>
   );
